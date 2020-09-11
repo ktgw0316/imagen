@@ -11,4 +11,12 @@
     <name>${project.groupId}:${project.artifactId}</name>
     <description>ImageN encode/decode codecs</description>
     <packaging>jar</packaging>
+
+    <dependencies>
+        <dependency>
+            <groupId>com.github.ktgw0316</groupId>
+            <artifactId>image-codec-jpeg</artifactId>
+            <version>6.1.13.1</version>
+        </dependency>
+    </dependencies>
 </project>
