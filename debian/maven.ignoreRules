@@ -1,0 +1,8 @@
+
+org.eclipse.imagen imagen-builder jar * * *
+org.eclipse.imagen imagen-demos pom * * *
+org.eclipse.imagen imagen-mlib jar * * *
+org.apache.maven.plugins maven-javadoc-plugin * * * *
+org.apache.maven.plugins maven-release-plugin * * * *
+org.apache.maven.plugins maven-source-plugin * * * *
+org.apache.maven.plugins maven-surefire-plugin * * * *

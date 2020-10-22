@@ -1,0 +1,5 @@
+
+org.eclipse.imagen imagen-codec jar s/.*/debian/ * *
+org.eclipse.imagen imagen-core jar s/.*/debian/ * *
+org.eclipse.imagen imagen-modules pom s/.*/debian/ * *
+org.eclipse.imagen imagen pom s/.*/debian/ * *

@@ -1,0 +1,8 @@
+#List of dependencies for libimagen-java, generated for use by debian/control
+maven.DocOptionalDepends=
+maven.Depends=
+maven.OptionalDepends=
+maven.CompileDepends=libmaven-compiler-plugin-java (>= 3.8.0)
+maven.DocDepends=default-jdk-doc
+maven.TestDepends=
+maven.UpstreamPackageVersion=0.4-SNAPSHOT
