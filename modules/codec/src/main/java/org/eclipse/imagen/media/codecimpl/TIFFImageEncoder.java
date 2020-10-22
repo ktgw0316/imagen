@@ -694,13 +694,14 @@ public class TIFFImageEncoder extends ImageEncoderImpl {
         }
 
         // Initialize some JPEG variables.
-        com.sun.image.codec.jpeg.JPEGEncodeParam jpegEncodeParam = null;
-        com.sun.image.codec.jpeg.JPEGImageEncoder jpegEncoder = null;
-        int jpegColorID = 0;
+//        com.sun.image.codec.jpeg.JPEGEncodeParam jpegEncodeParam = null;
+//        com.sun.image.codec.jpeg.JPEGImageEncoder jpegEncoder = null;
+//        int jpegColorID = 0;
 
         if(compression == COMP_JPEG_TTN2) {
+	    Raster tile00 = im.getTile(im.getMinTileX(), im.getMinTileY());
 
-            // Initialize JPEG color ID.
+	    // Initialize JPEG color ID.
             jpegColorID =
                 com.sun.image.codec.jpeg.JPEGDecodeParam.COLOR_ID_UNKNOWN;
             switch(imageType) {
@@ -720,7 +721,6 @@ public class TIFFImageEncoder extends ImageEncoderImpl {
             }
 
             // Get the JDK encoding parameters.
-            Raster tile00 = im.getTile(im.getMinTileX(), im.getMinTileY());
             jpegEncodeParam =
                 com.sun.image.codec.jpeg.JPEGCodec.getDefaultJPEGEncodeParam(
                     tile00, jpegColorID);
@@ -735,11 +735,13 @@ public class TIFFImageEncoder extends ImageEncoderImpl {
                 jpegEncodeParam.setTableInfoValid(true);
                 ByteArrayOutputStream tableStream =
                     new ByteArrayOutputStream();
-                jpegEncoder =
-                    com.sun.image.codec.jpeg.JPEGCodec.createJPEGEncoder(
-                        tableStream,
-                        jpegEncodeParam);
-                jpegEncoder.encode(tile00);
+                // TODO:
+//                jpegEncoder =
+//                    com.sun.image.codec.jpeg.JPEGCodec.createJPEGEncoder(
+//                        tableStream,
+//                        jpegEncodeParam);
+//                jpegEncoder.encode(tile00);
+
                 byte[] tableData = tableStream.toByteArray();
                 fields.add(new TIFFField(TIFF_JPEG_TABLES,
                                          TIFFField.TIFF_UNDEFINED,

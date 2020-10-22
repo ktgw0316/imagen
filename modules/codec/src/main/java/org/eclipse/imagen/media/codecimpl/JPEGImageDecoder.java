@@ -27,12 +27,17 @@ import java.awt.image.RenderedImage;
 import java.io.FilterInputStream;
 import java.io.InputStream;
 import java.io.IOException;
+import java.util.Iterator;
+
 import org.eclipse.imagen.media.codec.ImageDecoderImpl;
 import org.eclipse.imagen.media.codec.ImageDecodeParam;
 import org.eclipse.imagen.media.codec.JPEGDecodeParam;
 import org.eclipse.imagen.media.codecimpl.ImagingListenerProxy;
 import org.eclipse.imagen.media.codecimpl.util.ImagingException;
-import com.sun.image.codec.jpeg.ImageFormatException;
+
+import javax.imageio.ImageIO;
+import javax.imageio.ImageReader;
+import javax.imageio.stream.ImageInputStream;
 
 /**
  * @since EA2
@@ -109,18 +114,20 @@ class JPEGImage extends SimpleRenderedImage {
         // in com.sun.image.codec.jpeg.JPEGImageDecoder implementation.
         BufferedImage image = null;
         synchronized(LOCK) {
-            com.sun.image.codec.jpeg.JPEGImageDecoder decoder =
-                com.sun.image.codec.jpeg.JPEGCodec.createJPEGDecoder(stream);
+            ImageReader reader = null;
+            Iterator<ImageReader> iter = ImageIO.getImageReadersByFormatName("jpeg");
+            while (iter.hasNext()) {
+                reader = iter.next();
+            }
+            assert reader != null;
+
             try {
-                // decodeAsBufferedImage performs default color conversions
-                image = decoder.decodeAsBufferedImage();
-            } catch (ImageFormatException e) {
-                String message = JaiI18N.getString("JPEGImageDecoder1");
-                sendExceptionToListener(message, (Exception)e);
-//                throw new RuntimeException(JaiI18N.getString("JPEGImageDecoder1"));
+                ImageInputStream iis = ImageIO.createImageInputStream(stream);
+                reader.setInput(iis);
+                image = reader.read(0);
             } catch (IOException e) {
                 String message = JaiI18N.getString("JPEGImageDecoder1");
-                sendExceptionToListener(message, (Exception)e);
+                sendExceptionToListener(message, e);
 //                throw new RuntimeException(JaiI18N.getString("JPEGImageDecoder2"));
             }
         }

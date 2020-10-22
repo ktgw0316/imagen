@@ -26,19 +26,25 @@ import java.io.InputStream;
 import java.io.ObjectInputStream;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
-import org.eclipse.imagen.JAI;
+import java.util.Iterator;
+
 import org.eclipse.imagen.ParameterListDescriptor;
 import org.eclipse.imagen.RasterFactory;
 import org.eclipse.imagen.tilecodec.TileCodecDescriptor;
 import org.eclipse.imagen.tilecodec.TileCodecParameterList;
 import org.eclipse.imagen.tilecodec.TileDecoderImpl;
 import org.eclipse.imagen.util.ImagingListener;
-import com.sun.image.codec.jpeg.JPEGDecodeParam;
-import com.sun.image.codec.jpeg.JPEGImageDecoder;
-import com.sun.image.codec.jpeg.JPEGCodec;
-import com.sun.image.codec.jpeg.JPEGQTable;
-import sun.awt.image.codec.JPEGParam;
 import org.eclipse.imagen.media.util.ImageUtil;
+
+import javax.imageio.ImageIO;
+import javax.imageio.ImageReadParam;
+import javax.imageio.ImageReader;
+import javax.imageio.metadata.IIOMetadata;
+import javax.imageio.metadata.IIOMetadataNode;
+import javax.imageio.plugins.jpeg.JPEGQTable;
+import javax.imageio.stream.ImageInputStream;
+import javax.imageio.stream.MemoryCacheImageInputStream;
+
 /**
  * A concrete implementation of the <code>TileDecoderImpl</code> class
  * for the jpeg tile codec.
@@ -118,12 +124,15 @@ public class JPEGTileDecoder extends TileDecoderImpl {
 	}
 
 	ByteArrayInputStream bais = new ByteArrayInputStream(data);
-        JPEGImageDecoder decoder = JPEGCodec.createJPEGDecoder(bais);
 
-        Raster ras = decoder.decodeAsRaster()
-			.createTranslatedChild(location.x, location.y);
-	extractParameters(decoder.getJPEGDecodeParam(),
-			  ras.getSampleModel().getNumBands());
+//	JPEGImageDecoder reader = JPEGCodec.createJPEGDecoder(bais);
+	ImageReader reader = createJPEGReader(bais);
+	ImageReadParam param = reader.getDefaultReadParam();
+	Raster ras = reader.readRaster(0, param);
+
+	JPEGDecodeParam jdp = new JPEGDecodeParam(reader); // TODO
+
+	extractParameters(jdp, ras.getSampleModel().getNumBands());
 
 	// set the original sample model to the decoded raster
 	if (sm != null) {
@@ -143,24 +152,27 @@ public class JPEGTileDecoder extends TileDecoderImpl {
 
 	// extract the horizontal subsampling rates
 	int[] horizontalSubsampling = new int[bandNum];
+	final int xSubsampling = jdp.getHorizontalSubsampling();
 	for (int i = 0; i < bandNum; i++)
-	    horizontalSubsampling[i] = jdp.getHorizontalSubsampling(i);
+	    horizontalSubsampling[i] = xSubsampling;
 	paramList.setParameter("horizontalSubsampling", horizontalSubsampling);
 
 	// extract the vertical subsampling rates
 	int[] verticalSubsampling = new int[bandNum];
+	final int ySubsampling = jdp.getVerticalSubsampling();
 	for (int i = 0; i < bandNum; i++)
-	    verticalSubsampling[i] = jdp.getVerticalSubsampling(i);
+	    verticalSubsampling[i] = ySubsampling;
 	paramList.setParameter("verticalSubsampling", verticalSubsampling);
 
 	// if the quality is not set, extract the quantization tables from
 	// the stream; otherwise, define them with the default values.
-	if (!paramList.getBooleanParameter("qualitySet"))
+	if (!paramList.getBooleanParameter("qualitySet")) {
 	    for (int i = 0; i < 4; i++) {
 		JPEGQTable table = jdp.getQTable(i);
-		paramList.setParameter("quantizationTable"+i,
-		    (table == null) ? null : table.getTable());
+		paramList.setParameter("quantizationTable" + i,
+			(table == null) ? null : table.getTable());
 	    }
+	}
 	else {
 	    ParameterListDescriptor pld
 		= paramList.getParameterListDescriptor();
@@ -172,8 +184,10 @@ public class JPEGTileDecoder extends TileDecoderImpl {
 
 	// extract the quantizationTableMapping
 	int[] quanTableMapping = new int[bandNum];
-	for (int i = 0; i < bandNum; i++)
-	    quanTableMapping[i] = jdp.getQTableComponentMapping(i);
+	for (int i = 0; i < bandNum; i++) {
+	    final int qTabSlot = jdp.getQTableComponentMapping(i);
+	    quanTableMapping[i] = qTabSlot;
+	}
 	paramList.setParameter("quantizationTableMapping", quanTableMapping);
 
 	// extract the writeTableInfo and writeImageInfo
@@ -181,11 +195,74 @@ public class JPEGTileDecoder extends TileDecoderImpl {
 	paramList.setParameter("writeImageInfo", jdp.isImageInfoValid());
 
 	// extract the restart interval
-	paramList.setParameter("restartInterval", jdp.getRestartInterval());
+	paramList.setParameter("restartInterval", jdp.getResetInterval());
 
 	// define writeJFIFHeader by examing the APP0_MARKER is set or not
-	paramList.setParameter("writeJFIFHeader",
-			       jdp.getMarker(JPEGDecodeParam.APP0_MARKER));
+	paramList.setParameter("writeJFIFHeader", jdp.hasJFIFHeader());
+    }
+
+    private static ImageReader createJPEGReader(ByteArrayInputStream bais) {
+	ImageReader reader = null;
+	Iterator<ImageReader> iter = ImageIO.getImageReadersByFormatName("jpeg");
+	while (iter.hasNext()) {
+	    reader = iter.next();
+	}
+	assert reader != null;
+
+	ImageInputStream iis = new MemoryCacheImageInputStream(bais);
+	reader.setInput(iis);
+	return reader;
+    }
+
+    static class JPEGDecodeParam {
+        private final IIOMetadataNode tree;
+	private final IIOMetadataNode componentSpec;
+	private final IIOMetadataNode dqt;
+
+	public JPEGDecodeParam(ImageReader reader) throws IOException {
+	    IIOMetadata metadata = reader.getImageMetadata(0);
+            tree = (IIOMetadataNode) metadata.getAsTree("javax_imageio_jpeg_image_1.0");
+	    componentSpec = (IIOMetadataNode) tree.getElementsByTagName("componentSpec");
+	    dqt = (IIOMetadataNode) tree.getElementsByTagName("dqt");
+	}
+
+	public int getHorizontalSubsampling() {
+	    return Integer.parseInt(componentSpec.getAttribute("HsamplingFactor"));
+	}
+
+	public int getVerticalSubsampling() {
+	    return Integer.parseInt(componentSpec.getAttribute("VsamplingFactor"));
+	}
+
+	public JPEGQTable getQTable(int i) {
+	    IIOMetadataNode dqti = (IIOMetadataNode) dqt.item(i);
+	    IIOMetadataNode dqtable = (IIOMetadataNode) dqti.getElementsByTagName("dqtable");
+	    return (JPEGQTable) dqtable.getUserObject();
+	}
+
+	public int getQTableComponentMapping(int i) {
+	    // TODO
+	    return Integer.parseInt(componentSpec.getAttribute("QtableSelector"));
+	}
+
+	public boolean isTableInfoValid() {
+            // TODO
+	    return true;
+	}
+
+	public boolean isImageInfoValid() {
+	    // TODO
+	    return true;
+	}
+
+	public int getResetInterval() {
+	    IIOMetadataNode dri = (IIOMetadataNode) tree.getElementsByTagName("dri").item(0);
+	    return Integer.parseInt(dri.getAttribute("interval"));
+	}
+
+	public boolean hasJFIFHeader() {
+	    return tree.getElementsByTagName("app0JFIF").item(0) != null;
+	}
     }
 }
 

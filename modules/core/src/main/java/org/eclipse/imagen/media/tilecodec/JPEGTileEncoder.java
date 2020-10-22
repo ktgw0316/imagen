@@ -17,26 +17,32 @@
 
 package org.eclipse.imagen.media.tilecodec ;
 
-import java.awt.Point;
+import java.awt.Transparency;
+import java.awt.color.ColorSpace;
+import java.awt.image.ColorModel;
+import java.awt.image.ComponentColorModel;
+import java.awt.image.DataBuffer;
 import java.awt.image.Raster;
-import java.awt.image.WritableRaster;
 import java.awt.image.SampleModel;
 import java.io.OutputStream;
-import java.io.ObjectOutputStream;
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.text.MessageFormat;
-import org.eclipse.imagen.JAI ;
-import org.eclipse.imagen.ParameterListDescriptor ;
-import org.eclipse.imagen.RasterFactory ;
+import java.util.Iterator;
+
+import org.eclipse.imagen.ParameterListDescriptor;
 import org.eclipse.imagen.tilecodec.TileCodecDescriptor ;
 import org.eclipse.imagen.tilecodec.TileCodecParameterList ;
 import org.eclipse.imagen.tilecodec.TileEncoderImpl ;
-import com.sun.image.codec.jpeg.JPEGEncodeParam ;
-import com.sun.image.codec.jpeg.JPEGImageEncoder ;
-import com.sun.image.codec.jpeg.JPEGCodec ;
-import com.sun.image.codec.jpeg.JPEGQTable ;
-import sun.awt.image.codec.JPEGParam ;
+
+import javax.imageio.IIOImage;
+import javax.imageio.ImageIO;
+import javax.imageio.ImageTypeSpecifier;
+import javax.imageio.ImageWriteParam;
+import javax.imageio.ImageWriter;
+import javax.imageio.metadata.IIOMetadata;
+import javax.imageio.metadata.IIOMetadataNode;
+import javax.imageio.plugins.jpeg.JPEGImageWriteParam;
+import javax.imageio.plugins.jpeg.JPEGQTable;
+import javax.imageio.stream.ImageOutputStream;
 
 /**
  * A concrete implementation of the <code>TileEncoderImpl</code> class
@@ -86,86 +92,107 @@ public class JPEGTileEncoder extends TileEncoderImpl {
 	    throw new IllegalArgumentException(
 		JaiI18N.getString("TileEncoder1")) ;
 
-	ByteArrayOutputStream baos = new ByteArrayOutputStream() ;
+	ImageWriter writer = null;
+	Iterator<ImageWriter> iter = ImageIO.getImageWritersByFormatName("jpeg");
+	while (iter.hasNext()) {
+	    writer = iter.next();
+	}
+	assert writer != null;
+	ImageOutputStream ios = ImageIO.createImageOutputStream(outputStream);
+	writer.setOutput(ios);
 
-	SampleModel sm = ras.getSampleModel() ;
+	SampleModel sm = ras.getSampleModel();
+	IIOMetadata iooMetaData = convertToIIOMetadata(writer, sm);
+	IIOImage iioImage = new IIOImage(ras, null, null);
 
-	JPEGEncodeParam j2dEP = convertToJ2DJPEGEncodeParam(paramList, sm) ;
-        ((JPEGParam)j2dEP).setWidth(ras.getWidth()) ; 
-	((JPEGParam)j2dEP).setHeight(ras.getHeight()) ;
+	JPEGImageWriteParam param = (JPEGImageWriteParam) writer.getDefaultWriteParam();
 
-	JPEGImageEncoder encoder = JPEGCodec.createJPEGEncoder(baos, j2dEP) ;
-	encoder.encode(ras) ;
+	if(paramList.getBooleanParameter("qualitySet")) {
+	    param.setCompressionMode(ImageWriteParam.MODE_EXPLICIT);
+	    float quality = paramList.getFloatParameter("quality") ;
+	    param.setCompressionQuality(quality);
+	}
 
-	byte[] data = baos.toByteArray() ;
-
-	ObjectOutputStream oos = new ObjectOutputStream(outputStream) ;
-	oos.writeFloat(paramList.getFloatParameter("quality"));
-	oos.writeBoolean(paramList.getBooleanParameter("qualitySet"));
-	oos.writeObject(TileCodecUtils.serializeSampleModel(sm));
-
-	Point location = new Point( ras.getMinX(), ras.getMinY() ) ;
-	oos.writeObject( location ) ;
-
-	oos.writeObject( data ) ;
-	oos.close() ;
+	writer.write(iooMetaData, iioImage, param);
+	ios.close();
+	writer.dispose();
     }
 
-    private JPEGEncodeParam convertToJ2DJPEGEncodeParam(
-	TileCodecParameterList paramList, SampleModel sm) {
+    private IIOMetadata convertToIIOMetadata(ImageWriter writer, SampleModel sm) {
+	if(sm == null)
+	    return null;
 
-        if(sm == null)
-            return null ;
+	int nbands = sm.getNumBands();
 
-        int nbands = sm.getNumBands() ;
+	ColorModel cm = createColorModel(nbands);
 
-        JPEGParam j2dJP = createDefaultJ2DJPEGEncodeParam(nbands) ;
+	int[] hSubSamp
+		= (int[]) paramList.getObjectParameter("horizontalSubsampling");
+	int[] vSubSamp
+		= (int[]) paramList.getObjectParameter("verticalSubsampling");
+	int[] qTabSlot
+		= (int[]) paramList.getObjectParameter("quantizationTableMapping");
 
-        int[] hSubSamp
-            = (int[])paramList.getObjectParameter("horizontalSubsampling") ;
-        int[] vSubSamp
-            = (int[])paramList.getObjectParameter("verticalSubsampling") ;
-        int[] qTabSlot
-            = (int[])paramList.getObjectParameter("quantizationTableMapping") ;
+	IIOMetadata iooMetaData = writer.getDefaultImageMetadata(
+		new ImageTypeSpecifier(cm, sm), null);
+	IIOMetadataNode tree = (IIOMetadataNode) iooMetaData.getAsTree(
+		"javax_imageio_jpeg_image_1.0");
 
-        for(int i=0; i<nbands; i++) {
-            j2dJP.setHorizontalSubsampling(i, hSubSamp[i]) ;
-            j2dJP.setVerticalSubsampling(i, vSubSamp[i]) ;
+	IIOMetadataNode componentSpec =
+		(IIOMetadataNode) tree.getElementsByTagName("componentSpec");
+	IIOMetadataNode dqt = (IIOMetadataNode) tree.getElementsByTagName("dqt");
 
-            int[] qTab
-                 = (int[]) paramList.getObjectParameter("quantizationTable"+i) ;
-	    if(qTab != null && 
-	       qTab.equals(ParameterListDescriptor.NO_PARAMETER_DEFAULT)){ 
-		j2dJP.setQTableComponentMapping(i, qTabSlot[i]) ;
-		j2dJP.setQTable(qTabSlot[i], new JPEGQTable(qTab)) ;
+	for (int i = 0; i < nbands; i++) {
+	    int[] qTab
+		    = (int[]) paramList.getObjectParameter("quantizationTable" + i);
+	    if(qTab != null &&
+		    qTab.equals(ParameterListDescriptor.NO_PARAMETER_DEFAULT)) {
+		componentSpec.setAttribute("componentId", Integer.toString(i));
+		componentSpec.setAttribute("HsamplingFactor", Integer.toString(hSubSamp[i]));
+		componentSpec.setAttribute("VsamplingFactor", Integer.toString(vSubSamp[i]));
+		componentSpec.setAttribute("QtableSelector", Integer.toString(qTabSlot[i]));
+
+		IIOMetadataNode dqti = (IIOMetadataNode) dqt.item(i);
+		IIOMetadataNode dqtable  = (IIOMetadataNode) dqti.getElementsByTagName("dqtable");
+
+		// dqtable.setAttribute("elementPrecision", "0"); // 8-bit
+		dqtable.setAttribute("qtableId", Integer.toString(qTabSlot[i]));
+		dqtable.setUserObject(new JPEGQTable(qTab));
 	    }
-        }
+	}
 
-        if(paramList.getBooleanParameter("qualitySet")) {
-            float quality = paramList.getFloatParameter("quality") ;
-            j2dJP.setQuality(quality, true) ;
-        }
+	IIOMetadataNode dri = (IIOMetadataNode) tree.getElementsByTagName("dri").item(0);
+	int rInt = paramList.getIntParameter("restartInterval");
+	dri.setAttribute("interval", Integer.toString(rInt));
 
-        int rInt = paramList.getIntParameter("restartInterval") ;
-        j2dJP.setRestartInterval(rInt) ;
+//	paramList.getBooleanParameter("writeImageInfo");
+//	paramList.getBooleanParameter("writeTableInfo");
 
-        j2dJP.setImageInfoValid(paramList.getBooleanParameter("writeImageInfo")) ;
-        j2dJP.setTableInfoValid(paramList.getBooleanParameter("writeTableInfo")) ;
-
-        if(paramList.getBooleanParameter("writeJFIFHeader")) {
-            j2dJP.setMarkerData(JPEGEncodeParam.APP0_MARKER, null) ;
-        }
-
-        return (JPEGEncodeParam)j2dJP ;
+	if(!paramList.getBooleanParameter("writeJFIFHeader")) {
+	    if (tree.hasAttribute("app0JFIF")) {
+		tree.removeAttribute("app0JFIF");
+	    }
+	}
+	return iooMetaData;
     }
 
-    private JPEGParam createDefaultJ2DJPEGEncodeParam(int nbands){
-        if(nbands == 1)
-            return new JPEGParam(JPEGEncodeParam.COLOR_ID_GRAY, 1) ;
-        if(nbands == 3)
-            return new JPEGParam(JPEGEncodeParam.COLOR_ID_YCbCr, 3) ;
-        if(nbands == 4)
-            return new JPEGParam(JPEGEncodeParam.COLOR_ID_CMYK, 4) ;
-	return null ;
+    private ColorModel createColorModel(int nbands) {
+        ColorSpace cs = null;
+        int[] bits = null;
+	if (nbands == 1) {
+	    cs = ColorSpace.getInstance(ColorSpace.TYPE_GRAY);
+	    bits = new int[] { 8 };
+	}
+	if (nbands == 3) {
+	    cs = ColorSpace.getInstance(ColorSpace.TYPE_YCbCr);
+	    bits = new int[] { 8, 8, 8 };
+	}
+	if (nbands == 4) {
+	    cs = ColorSpace.getInstance(ColorSpace.TYPE_CMYK);
+	    bits = new int[] { 8, 8, 8, 8 };
+	}
+	assert cs != null;
+	return new ComponentColorModel(cs, bits, false, false,
+		Transparency.OPAQUE, DataBuffer.TYPE_BYTE)
     }
 }

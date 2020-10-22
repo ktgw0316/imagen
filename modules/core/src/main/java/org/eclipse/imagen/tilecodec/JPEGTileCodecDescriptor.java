@@ -168,10 +168,6 @@ import org.eclipse.imagen.util.Range ;
  *                            <td>false</td>
  * </table></p>
  *
- * @see com.sun.image.codec.jpeg.JPEGQTable
- * @see com.sun.image.codec.jpeg.JPEGDecodeParam
- * @see com.sun.image.codec.jpeg.JPEGEncodeParam
- *
  * @since JAI 1.1
  */
 public class JPEGTileCodecDescriptor extends TileCodecDescriptorImpl {

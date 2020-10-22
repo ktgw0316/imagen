@@ -17,33 +17,24 @@
 
 package org.eclipse.imagen.media.codecimpl.fpx;
 import java.awt.Point;
-import java.awt.RenderingHints;
 import java.awt.Transparency;
 import java.awt.color.ColorSpace;
-import java.awt.image.ColorModel;
 import java.awt.image.ComponentColorModel;
 import java.awt.image.DataBuffer;
 import java.awt.image.DataBufferByte;
 import java.awt.image.Raster;
-import java.awt.image.SampleModel;
-import java.awt.image.WritableRaster;
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.io.IOException;
 import java.util.Enumeration;
 import java.util.Hashtable;
-import org.eclipse.imagen.media.codec.ImageCodec;
-import org.eclipse.imagen.media.codec.FPXDecodeParam;
-import org.eclipse.imagen.media.codec.SeekableStream;
+
+import org.eclipse.imagen.media.codec.*;
+import org.eclipse.imagen.media.codecimpl.JPEGCodec;
 import org.eclipse.imagen.media.codecimpl.SimpleRenderedImage;
 import org.eclipse.imagen.media.codecimpl.util.RasterFactory;
 
-import com.sun.image.codec.jpeg.JPEGCodec;
-import com.sun.image.codec.jpeg.JPEGDecodeParam;
-import com.sun.image.codec.jpeg.JPEGEncodeParam;
-import com.sun.image.codec.jpeg.JPEGImageDecoder;
 import org.eclipse.imagen.media.codecimpl.ImagingListenerProxy;
-import org.eclipse.imagen.media.codecimpl.util.ImagingException;
 
 public class FPXImage extends SimpleRenderedImage {
 
@@ -596,23 +587,19 @@ public class FPXImage extends SimpleRenderedImage {
         int conversion = (subtype >> 16) & 0xff;
         int table = (subtype >> 24) & 0xff;
 
-        JPEGImageDecoder dec;
-        JPEGDecodeParam param = null;
+        ImageDecoder dec;
+        ImageDecodeParam param = null;
 
         if (table != 0) {
             InputStream tableStream =
                 new ByteArrayInputStream(JPEGTable[table]);
-            dec = JPEGCodec.createJPEGDecoder(tableStream);
+            dec = JPEGCodec.createImageDecoder(null, tableStream, param);
             Raster junk = dec.decodeAsRaster();
-            param = dec.getJPEGDecodeParam();
+            param = dec.getParam();
         }
 
         subimageDataStream.seek(getTileOffset(tileIndex));
-        if (param != null) {
-            dec = JPEGCodec.createJPEGDecoder(subimageDataStream, param);
-        } else {
-            dec = JPEGCodec.createJPEGDecoder(subimageDataStream);
-        }
+        dec = JPEGCodec.createImageDecoder(null, subimageDataStream, param);
         Raster ras = dec.decodeAsRaster().createTranslatedChild(tx, ty);
 
         DataBufferByte dataBuffer = (DataBufferByte)ras.getDataBuffer();

@@ -42,6 +42,7 @@ import java.io.IOException;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
 import java.text.MessageFormat;
+import java.util.Iterator;
 import java.util.Locale;
 import java.util.zip.DataFormatException;
 import java.util.zip.Inflater;
@@ -56,12 +57,14 @@ import org.eclipse.imagen.media.codec.TIFFField;
 import org.eclipse.imagen.media.codecimpl.util.DataBufferFloat;
 import org.eclipse.imagen.media.codecimpl.util.FloatDoubleColorModel;
 import org.eclipse.imagen.media.codecimpl.util.RasterFactory;
-import com.sun.image.codec.jpeg.JPEGCodec;
-import com.sun.image.codec.jpeg.JPEGDecodeParam;
-import com.sun.image.codec.jpeg.JPEGImageDecoder;
 import org.eclipse.imagen.media.codecimpl.ImagingListenerProxy;
 import org.eclipse.imagen.media.codecimpl.util.ImagingException;
 import org.eclipse.imagen.media.util.SimpleCMYKColorSpace;
+
+import javax.imageio.ImageIO;
+import javax.imageio.ImageReadParam;
+import javax.imageio.ImageReader;
+import javax.imageio.stream.ImageInputStream;
 
 public class TIFFImage extends SimpleRenderedImage {
 
@@ -156,18 +159,23 @@ public class TIFFImage extends SimpleRenderedImage {
         // Create an InputStream from the compressed data array.
         ByteArrayInputStream jpegStream = new ByteArrayInputStream(data);
 
-        // Create a decoder.
-        JPEGImageDecoder decoder = decodeParam == null ?
-            JPEGCodec.createJPEGDecoder(jpegStream) :
-            JPEGCodec.createJPEGDecoder(jpegStream,
-                                        decodeParam);
+	ImageReader reader = null;
+	Iterator<ImageReader> iter = ImageIO.getImageReadersByFormatName("jpeg");
+	while (iter.hasNext()) {
+	    reader = iter.next();
+	}
+	assert reader != null;
+	ImageReadParam param = reader.getDefaultReadParam(); // FIXME
 
         // Decode the compressed data into a Raster.
         Raster jpegRaster = null;
         try {
+	    ImageInputStream iis = ImageIO.createImageInputStream(jpegStream);
+	    reader.setInput(iis);
+
             jpegRaster = colorConvert ?
-                decoder.decodeAsBufferedImage().getWritableTile(0, 0) :
-                decoder.decodeAsRaster();
+		    reader.read(0, param).getWritableTile(0, 0) :
+		    reader.readRaster(0, param);
         } catch (IOException ioe) {
             String message = JaiI18N.getString("TIFFImage13");
             ImagingListenerProxy.errorOccurred(message,
@@ -744,11 +752,24 @@ public class TIFFImage extends SimpleRenderedImage {
                 byte[] jpegTable = jpegTableField.getAsBytes();
                 ByteArrayInputStream tableStream =
                     new ByteArrayInputStream(jpegTable);
-                JPEGImageDecoder decoder =
-                    JPEGCodec.createJPEGDecoder(tableStream);
-                decoder.decodeAsRaster();
-                decodeParam = decoder.getJPEGDecodeParam();
-            }
+
+//                JPEGImageDecoder decoder =
+//                    JPEGCodec.createJPEGDecoder(tableStream);
+//                decoder.decodeAsRaster();
+//                decodeParam = decoder.getJPEGDecodeParam();
+
+		ImageReader reader = null;
+		Iterator<ImageReader> iter = ImageIO.getImageReadersByFormatName("jpeg");
+		while (iter.hasNext()) {
+		    reader = iter.next();
+		}
+		assert reader != null;
+		ImageReadParam param = reader.getDefaultReadParam(); // FIXME
+
+		ImageInputStream iis = ImageIO.createImageInputStream(tableStream);
+		reader.setInput(iis);
+		reader.readRaster(0, param);
+	    }
 
             break;
         default:

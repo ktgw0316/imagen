@@ -42,10 +42,9 @@ import org.eclipse.imagen.RasterFactory;
 import org.eclipse.imagen.util.ImagingException;
 import org.eclipse.imagen.util.ImagingListener;
 import java.util.Map;
-import com.sun.image.codec.jpeg.JPEGCodec;
-import com.sun.image.codec.jpeg.JPEGDecodeParam;
-import com.sun.image.codec.jpeg.JPEGImageDecoder;
 import org.eclipse.imagen.media.util.ImageUtil;
+
+import javax.imageio.ImageIO;
 
 /**
  * An OpImage class to generate an image from an IIP connection. A single
@@ -921,6 +920,10 @@ public class IIPResolutionOpImage extends OpImage {
         if(tableIndex != 0) {
             decodeParam = getJPEGDecodeParam(tableIndex);
         }
+
+        // TODO
+//        ByteArrayInputStream bais = new ByteArrayInputStream(data);
+//        Raster ras = ImageIO.read(bais).getRaster();
 
         ByteArrayInputStream byteStream = new ByteArrayInputStream(data);
         JPEGImageDecoder decoder = decodeParam == null ?
