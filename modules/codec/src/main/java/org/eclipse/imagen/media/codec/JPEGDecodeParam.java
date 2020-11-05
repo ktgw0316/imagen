@@ -17,6 +17,12 @@
 
 package org.eclipse.imagen.media.codec;
 
+import javax.imageio.ImageReader;
+import javax.imageio.metadata.IIOMetadata;
+import javax.imageio.metadata.IIOMetadataNode;
+import javax.imageio.plugins.jpeg.JPEGQTable;
+import java.io.IOException;
+
 /**
  * An instance of <code>ImageDecodeParam</code> for decoding images in
  * the JPEG format.
@@ -67,5 +73,54 @@ public class JPEGDecodeParam implements ImageDecodeParam {
      */
     public boolean getDecodeToCSM() {
         return decodeToCSM;
+    }
+
+    private IIOMetadataNode tree;
+    private IIOMetadataNode componentSpec;
+    private IIOMetadataNode dqt;
+
+    public void setReader(ImageReader reader) throws IOException {
+        IIOMetadata metadata = reader.getImageMetadata(0);
+        tree = (IIOMetadataNode) metadata.getAsTree("javax_imageio_jpeg_image_1.0");
+        componentSpec = (IIOMetadataNode) tree.getElementsByTagName("componentSpec");
+        dqt = (IIOMetadataNode) tree.getElementsByTagName("dqt");
+    }
+
+    public int getHorizontalSubsampling() {
+        return Integer.parseInt(componentSpec.getAttribute("HsamplingFactor"));
+    }
+
+    public int getVerticalSubsampling() {
+        return Integer.parseInt(componentSpec.getAttribute("VsamplingFactor"));
+    }
+
+    public JPEGQTable getQTable(int i) {
+        IIOMetadataNode dqti = (IIOMetadataNode) dqt.item(i);
+        IIOMetadataNode dqtable = (IIOMetadataNode) dqti.getElementsByTagName("dqtable");
+        return (JPEGQTable) dqtable.getUserObject();
+    }
+
+    public int getQTableComponentMapping(int i) {
+        // TODO
+        return Integer.parseInt(componentSpec.getAttribute("QtableSelector"));
+    }
+
+    public boolean isTableInfoValid() {
+        // TODO
+        return true;
+    }
+
+    public boolean isImageInfoValid() {
+        // TODO
+        return true;
+    }
+
+    public int getRestartInterval() {
+        IIOMetadataNode dri = (IIOMetadataNode) tree.getElementsByTagName("dri").item(0);
+        return Integer.parseInt(dri.getAttribute("interval"));
+    }
+
+    public boolean hasJFIFHeader() {
+        return tree.getElementsByTagName("app0JFIF").item(0) != null;
     }
 }

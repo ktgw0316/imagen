@@ -39,6 +39,9 @@ import org.eclipse.imagen.ImageLayout;
 import org.eclipse.imagen.JAI;
 import org.eclipse.imagen.OpImage;
 import org.eclipse.imagen.RasterFactory;
+import org.eclipse.imagen.media.codec.JPEGDecodeParam;
+import org.eclipse.imagen.media.codecimpl.JPEGCodec;
+import org.eclipse.imagen.media.codecimpl.JPEGImageDecoder;
 import org.eclipse.imagen.util.ImagingException;
 import org.eclipse.imagen.util.ImagingListener;
 import java.util.Map;
@@ -920,10 +923,6 @@ public class IIPResolutionOpImage extends OpImage {
         if(tableIndex != 0) {
             decodeParam = getJPEGDecodeParam(tableIndex);
         }
-
-        // TODO
-//        ByteArrayInputStream bais = new ByteArrayInputStream(data);
-//        Raster ras = ImageIO.read(bais).getRaster();
 
         ByteArrayInputStream byteStream = new ByteArrayInputStream(data);
         JPEGImageDecoder decoder = decodeParam == null ?

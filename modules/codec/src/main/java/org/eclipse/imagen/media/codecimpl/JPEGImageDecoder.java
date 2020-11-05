@@ -16,10 +16,6 @@
  */
 
 package org.eclipse.imagen.media.codecimpl;
-import java.awt.Graphics2D;
-import java.awt.Point;
-import java.awt.RenderingHints;
-import java.awt.geom.AffineTransform;
 import java.awt.image.BufferedImage;
 import java.awt.image.ComponentSampleModel;
 import java.awt.image.Raster;
@@ -32,7 +28,6 @@ import java.util.Iterator;
 import org.eclipse.imagen.media.codec.ImageDecoderImpl;
 import org.eclipse.imagen.media.codec.ImageDecodeParam;
 import org.eclipse.imagen.media.codec.JPEGDecodeParam;
-import org.eclipse.imagen.media.codecimpl.ImagingListenerProxy;
 import org.eclipse.imagen.media.codecimpl.util.ImagingException;
 
 import javax.imageio.ImageIO;
@@ -58,6 +53,17 @@ public class JPEGImageDecoder extends ImageDecoderImpl {
         } catch(Exception e) {
             throw CodecUtils.toIOException(e);
         }
+    }
+
+    public Raster decodeAsRaster() throws IOException {
+        return decodeAsRenderedImage(0).getTile(0, 0);
+    }
+
+    public JPEGDecodeParam getJPEGDecodeParam() {
+        if (param == null || ! (param instanceof JPEGDecodeParam)) {
+            return null;
+        }
+        return (JPEGDecodeParam) param;
     }
 }
 
@@ -125,6 +131,10 @@ class JPEGImage extends SimpleRenderedImage {
                 ImageInputStream iis = ImageIO.createImageInputStream(stream);
                 reader.setInput(iis);
                 image = reader.read(0);
+
+                if (param instanceof JPEGDecodeParam) {
+                    ((JPEGDecodeParam) param).setReader(reader);
+                }
             } catch (IOException e) {
                 String message = JaiI18N.getString("JPEGImageDecoder1");
                 sendExceptionToListener(message, e);

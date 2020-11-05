@@ -17,11 +17,8 @@
 
 package org.eclipse.imagen.media.codecimpl;
 import java.awt.image.RenderedImage;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.InputStream;
-import java.io.IOException;
-import java.io.OutputStream;
+import java.io.*;
+
 import org.eclipse.imagen.media.codec.ImageCodec;
 import org.eclipse.imagen.media.codec.ImageDecoder;
 import org.eclipse.imagen.media.codec.ImageDecodeParam;
@@ -89,5 +86,9 @@ public final class JPEGCodec extends ImageCodec {
         return ((header[0] == (byte)0xff) &&
                 (header[1] == (byte)0xd8) &&
                 (header[2] == (byte)0xff));
+    }
+
+    public static JPEGImageDecoder createJPEGDecoder(InputStream src) {
+        return new JPEGImageDecoder(src, new JPEGDecodeParam());
     }
 }
