@@ -28,7 +28,6 @@ import java.awt.image.ComponentColorModel;
 import java.awt.image.DataBuffer;
 import java.awt.image.DataBufferByte;
 import java.awt.image.Raster;
-import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.net.URL;
 import java.util.Map;
@@ -38,7 +37,6 @@ import org.eclipse.imagen.ImageLayout;
 import org.eclipse.imagen.JAI;
 import org.eclipse.imagen.OpImage;
 import org.eclipse.imagen.RasterFactory;
-import org.eclipse.imagen.media.util.ImageUtil;
 import org.eclipse.imagen.util.ImagingException;
 import org.eclipse.imagen.util.ImagingListener;
 

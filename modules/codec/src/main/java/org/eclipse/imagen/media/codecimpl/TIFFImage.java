@@ -357,11 +357,19 @@ public class TIFFImage extends TIFFImageOrginal {
               return Double
                   .valueOf(Double.valueOf(Double.parseDouble(field.getAsString(0))).intValue());
             }
-            case DataBuffer.TYPE_FLOAT: {
-              return Double.valueOf(Float.parseFloat(field.getAsString(0)));
-            }
             default: {
-              return Double.valueOf(field.getAsString(0));
+              String string = field.getAsString(0);
+              // Double.parseDouble or Double.valueOf are case sensitive
+              if (Objects.equals(string.toLowerCase(), "nan")) {
+                return Double.NaN;
+              }
+              if (Objects.equals(string.toLowerCase(), "infinity")) {
+                return Double.POSITIVE_INFINITY;
+              }
+              if (Objects.equals(string.toLowerCase(), "-infinity")) {
+                return Double.NEGATIVE_INFINITY;
+              }
+              return Double.parseDouble(string);
             }
           }
         }
