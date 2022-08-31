@@ -5,7 +5,7 @@
     <parent>
         <groupId>org.eclipse.imagen</groupId>
         <artifactId>imagen-modules</artifactId>
-        <version>0.4-JAVA11-SNAPSHOT</version>
+        <version>0.4-JAVA17-SNAPSHOT</version>
     </parent>
     <artifactId>imagen-builder</artifactId>
     <name>${project.groupId}:${project.artifactId}</name>
