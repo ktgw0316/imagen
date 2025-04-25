@@ -5,17 +5,24 @@ restrictions on raster size or number of bands.
 
 ImageN provides:
 
-* Modern Java API using literate programming style
-* Pure Java implementation
+* High performance Pure Java Image Processing
 * Clear image processing operations, allowing installations to use native libs to accelerate processing if available
 * On demand processing of large raster content staging tiles in memory for parallel processing
 * No artificial limitation on raster size or number of bands to support multi-spectral imagery
+
+Long term continuation of JAI and JAI-Ext:
+
+* Migration refactoring planned
+* Modernize Java API planned
 
 This is a [Eclipse Foundation](https://www.eclipse.org) open source project using the [Apache License v 2.0](LICENSE.md).
 
 For more information:
 
-* [ImageN](http://eclipse.github.io/imagen) - website generated from [docs](docs) GitHub pages folder
+* [ImageN](https://eclipse-imagen.github.io/imagen/) - website generated from [docs](docs) GitHub pages folder
+  
+   * [Eclipse ImageN Programming Guide](https://eclipse-imagen.github.io/imagen/guide/)
+   
 * [ImageN Project](https://projects.eclipse.org/projects/technology.imagen) - Eclipse Project Page
 * [Replace JAI](https://github.com/geotools/geotools/wiki/Replace-JAI) - GeoTools Wiki
 
