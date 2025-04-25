@@ -10,11 +10,11 @@ description: Java Image Processing API
 search_enabled: true
 aux_links:
     "Version 0.4.0":
-     - "https://github.com/eclipse/imagen/tags"
+     - "https://github.com/eclipse-imagen/imagen/tags"
     "Eclipse Project":
       - "https://projects.eclipse.org/projects/technology.imagen"
     "GitHub":
-      - "http://github.com/eclipse/imagen"
+      - "https://github.com/eclipse-imagen/imagen"
 heading_anchors: false
 footer_content: Copyright (c) 2019, Oracle and Others. All rights reserved. <br/> This work is licensed under a <a rel="license" href="http://creativecommons.org/licenses/by/4.0/">Creative Commons Attribution 4.0 International License</a>
 
