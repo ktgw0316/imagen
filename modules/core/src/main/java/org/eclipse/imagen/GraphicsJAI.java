@@ -433,8 +433,7 @@ public class GraphicsJAI extends Graphics2D {
      * for subclasses.  We override it here with an empty method so that
      * it doesn't dispose the private Graphics2D field.
      *
-     * @see <a href="https://web.archive.org/web/20110412105630/
-     * http://java.net/jira/browse/JAI_CORE-96">JIRA JAI-CORE 96</a>
+     * @see <a href="https://web.archive.org/web/20110412105630/http://java.net/jira/browse/JAI_CORE-96">JIRA JAI-CORE 96</a>
      */
     public void finalize() {
         // DO NOT REMOVE THIS METHOD
