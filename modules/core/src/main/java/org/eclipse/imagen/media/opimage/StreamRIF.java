@@ -38,6 +38,8 @@ import org.eclipse.imagen.registry.RIFRegistry;
 import org.eclipse.imagen.util.ImagingException;
 import org.eclipse.imagen.util.ImagingListener;
 
+import javax.imageio.ImageIO;
+
 /**
  * @see org.eclipse.imagen.operator.StreamDescriptor
  *
@@ -88,6 +90,21 @@ public class StreamRIF implements RenderedImageFactory {
             key = JAI.KEY_OPERATION_BOUND;
             if (renderHints.containsKey(key)) {
                 bound = ((Integer)renderHints.get(key)).intValue();
+            }
+        }
+
+        if (names.length == 0) {
+            // JAI does not support this format, so try to decode the image
+            // using the Java Image I/O API.
+            try {
+                RenderedImage im = ImageIO.read(src);
+
+                if (im != null) {
+                    return im;
+                }
+            } catch (IOException e) {
+                listener.errorOccurred(JaiI18N.getString("StreamRIF2"),
+                        e, this, false);
             }
         }
 
